@@ -1,0 +1,610 @@
+<html>
+<head>
+<meta HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+
+<title>Calculate My Google Map Photos Views</title>
+
+<script>
+
+	MastSeg = [100, 250, 500, 1000, 2000, 4000, 6000, 8000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000, 125000, 150000, 200000, 300000, 400000, 500000, 750000, 1000000, 2000000];
+	
+	d = document;
+	if (!window.File && !window.FileReader && !window.FileList && !window.Blob) {
+		alert('The File APIs are not supported in this browser.');
+	} else {
+		d.addEventListener("DOMContentLoaded", ready);
+	}
+	
+	function ready()
+	{
+		if (typeof(Storage) != "undefined") { 
+			localStore = true; 
+			setUpLocalStorage();
+		}
+	
+        doFormat();
+        //allStorage();
+        
+        var indexValue = 9
+        var newIndexValue = "";
+		preL = "<div class='row'><div class='rowLeft'><p class='thinP colorWhite'>";
+		preR = "</p></div><div class='rowRight'><p class='thinP colorWhite'>";
+		sep = " &rarr; ";
+		suf = "</p></div></div>";
+        
+		d.getElementById("load").onclick = function(){ d.getElementById("fileChoice").click(); }
+		d.getElementById("bottomData").onclick = function(){ doTableClick(); }
+        //compare = d.getElementById("compare");
+        //compare.onclick = function(){ doTableClick(); }
+        
+        d.getElementById("tools").onclick = function(){
+        	indexValue = parseInt(getStorage("indexValue"));
+        	newIndexValue = prompt("The current index value is " + indexValue + 
+        		". \nPlease enter a whole number between 0 and 20 as a new index value:", "");
+			if (newIndexValue == null || newIndexValue == "" || 
+				newIndexValue.length > 2 || newIndexValue > 20) {
+				alert("You didn't enter a whole number between 0 and 20. \nPlease try again.");
+			} else {
+				indexValue = newIndexValue;
+			}
+        }
+        
+		window.onscroll = function(e) {
+			d.getElementById("title").style.opacity = 1 - (window.pageYOffset * .005);		
+			if (window.pageYOffset > 140) {
+				d.getElementById("title").style.display = "none";		
+			}
+		}
+
+		d.getElementById("fileChoice").addEventListener('change', handleFileSelect, false);
+		
+		if (localStore) { 
+			prevFileName = getStorage("prevFileName"); 
+			d.getElementById("intro").innerHTML += prevFileName;
+		}
+		
+		function doTableClick()
+		{
+        	if (!toggleData) {
+        		toggleData = true;
+        		compare.style.backgroundColor = "#E55F00";
+				compare.innerHTML = "View Curr.";
+				arrActiveBlock = arrPreviousBlock;
+        	} else {
+        		toggleData = false;
+        		compare.style.backgroundColor = "#2D84B2";
+				compare.innerHTML = "View Prev.";
+				arrActiveBlock = arrMasterBlock;
+        	}
+        	writeBottomTable();
+        	doFormat();
+        	setGradient();
+		}
+
+		function handleFileSelect(evt) {
+
+			var files = evt.target.files;
+			fileName = files[0].name;
+
+			if (!files[0].type.match('text.*')) {
+				alert("Wrong File Type! \n Load TEXT files (.txt) only");
+			} else {
+				reader = new FileReader();
+				reader.onload = function(){
+					output = reader.result;
+					processFile();
+				}
+				reader.readAsText(files[0]);
+			}
+		}
+	
+		function processFile()
+		{
+			const lines = output.split("\n");
+			var tmp;
+			arrPreviousBlock = getStorage("lastFileData").split(" ");
+			toggleData = false;
+			timeStart = new Date();
+			count = 0;
+			minn = 10000000;
+			maxx = 0;
+			total = 0;
+			googleTotal = 0;
+			diff = 0;
+			arrMasterBlock = [];
+			arrActiveBlock = [];
+			
+			for (i=0; i<MastSeg.length + 1; i++) { arrMasterBlock[i] = 0; }
+			d.getElementById("tools").style.display = "none";
+			storedViews = getStorage("views");
+			storedGoogleViews = getStorage("googleViews");
+			prevFileName = getStorage("prevFileName");
+			arrMasterBlock[MastSeg.length-1] = 0; 
+			arrMasterBlock[MastSeg.length] = 0; 
+			
+			for (i=indexValue; i<lines.length; i++) {
+			
+				if (i < 20 && googleTotal == 0 && parseInt(lines[i]) > 0) {
+					try {
+						googleTotal = removeSpace(lines[i]).split(" ");
+
+						if (googleTotal.length > 1 && googleTotal.length < 5){
+							googleTotal = (googleTotal[1] == "") ? googleTotal[2] : googleTotal[1];
+							googleTotal = numberRemoveCommas(googleTotal);
+						}			
+					} catch(e) {
+						googleTotal = 0;
+					}
+				}
+				
+				tmp = Number(numberRemoveCommas(lines[i]));
+			
+				if (!isNaN(tmp)) {
+					total += tmp;
+					if (tmp > 0) {
+						count += 1;
+						maxx = tmp > maxx ? tmp : maxx;
+						minn = tmp < minn ? tmp : minn;
+					
+						if (tmp < MastSeg[0]) { 
+							arrMasterBlock[0] += 1; 
+						} else {
+							for (c=1; c< MastSeg.length; c++) {
+								if (tmp < MastSeg[c] && tmp > MastSeg[c-1]) { arrMasterBlock[c] += 1 }
+							}
+						}
+					}
+				}
+			}
+			arrActiveBlock = arrMasterBlock;
+			diff = total - storedViews;
+			googleDiff = googleTotal - total;
+			googleTotalDiff = (googleTotal != storedGoogleViews) ? " " + posNeg(googleTotal - storedGoogleViews) + " " : "";
+
+			setStorage("views", total);
+			setStorage("googleViews", googleTotal);
+			setStorage("indexValue", indexValue);
+			setStorage("prevFileName", fileName);
+			writeTopData();
+		}
+		
+		function writeTopData()
+		{
+			var note = (googleTotal == storedGoogleViews) ? "<span class='colorRed'>No" : "<span class='colorGreen'>&nbsp;Yes&nbsp;";			
+			note += "</span>";
+						
+			var preL = "<div class='row'><div class='rowLeft'><p class='thinP'>";
+			var preR = "</p></div><div class='rowRight'><p class='thinP'>";
+			var sep = " - ";
+			var suf = "</p></div></div>";
+
+			topData = d.getElementById("topData");
+
+			topData.innerHTML = preL + "Actual total" + preR + posNeg(diff) + " " + numberAddCommas(total) + suf;
+			topData.innerHTML += preL + "Google total" + preR + googleTotalDiff + " " +  numberAddCommas(googleTotal) + suf;
+			topData.innerHTML += preL + "Google update? " + preR + note + suf;
+			topData.innerHTML += preL + "Actual - Google" + preR + posNeg(googleDiff) + " " + Number((googleTotal/total)*100).toFixed(2) + "%" + suf;
+			topData.innerHTML += preL + "Most # views" + preR + numberAddCommas(maxx) + suf;
+			topData.innerHTML += preL + "Lowest # views" + preR+ numberAddCommas(minn) + suf;
+			topData.innerHTML += preL + "Avg. # per" + preR + numberAddCommas(Math.round(total/count)) +  " &nbsp;&nbsp;" + "(G)" + numberAddCommas(Math.round(googleTotal/count)) + suf;
+			topData.innerHTML += preL + "Total # photos" + preR+ numberAddCommas(count) + suf;
+			topData.innerHTML += '<div id="tableSource"> </div>';
+			d.getElementById("tableSource").innerHTML = "<p class='files'>&nbsp;Curr. file:&nbsp;<span class='bold colorGreen'>&nbsp;" + fileName + "&nbsp;</span><br  />&nbsp;Prev. file:&nbsp;<span>" + prevFileName + "</span></p>";
+			
+			writeBottomTable();
+			doFormat();
+			currFile[0].style.fontSize = 33 + "px";
+			if (arrMasterBlock != undefined) { setGradient(); }
+			d.getElementById("bottomData").style.display = "block";
+			var timeStop = new Date();
+			console.log(timeStop.getTime() - timeStart.getTime() + " ms.");
+		}
+		
+		function writeBottomTable()
+		{
+			var tmp = "";
+			tbl = d.getElementById("table");
+			tbl.innerHTML = "";
+			
+			for (var i=0; i<MastSeg.length; i++) {
+				tmp = "<span class='colorWhite'>" + numberAddCommas(arrActiveBlock[i]) + "</span>";			
+				if (i == 0) {
+					tbl.innerHTML += preL + "&nbsp;0" + sep + makeK(MastSeg[i]) + preR + tmp + suf;
+				} else {
+					tbl.innerHTML += preL + "&nbsp;" + makeK(MastSeg[i-1]) + sep + makeK(MastSeg[i]) + preR + tmp + suf;
+				}
+			}
+			tbl.innerHTML += "<p class='thinP'>&nbsp;&nbsp;&nbsp;&nbsp;</p>";
+			lastData = arrayToString(arrActiveBlock, " ");
+			setStorage("lastFileData", lastData);
+		}
+
+		function makeK(theNum)
+		{
+			var tmp = theNum;
+			if (tmp >= 1000000){
+				tmp = String(tmp).charAt(0) + "M";
+			} else {
+				tmp = numberAddCommas(theNum);
+				if (tmp.indexOf(",") > -1) { tmp = tmp.substring(0, tmp.lastIndexOf(",")) + "k"; }
+			}
+			return tmp;
+		}
+		
+		function posNeg(theNum)
+		{
+			if (theNum >= 0) {
+				return tmp = "<span class='colorGreen'>&nbsp;(+" + numberAddCommas(theNum) + ")&nbsp;</span>";
+			} else {
+				return tmp = "<span class='colorRed'> (" + numberAddCommas(theNum) + ")</span>";
+			}
+		}
+
+		function numberAddCommas(num) 
+		{
+			if (num != undefined) {
+			
+				if (num.toString().indexOf(".") > -1) {
+					var tmp = num.toFixed(2).toString().split(".");
+					var pre = tmp[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",").valueOf();
+					var tot = pre + "." + tmp[1];
+				} else {
+					var tot = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",").valueOf();
+				}
+				return (tot);
+			}
+		}
+		
+		function arrayToString(theArray, delimitor)
+		{
+			var tmp = "";
+			var i=0;
+			for (i; i<theArray.length; i++) { tmp += theArray[i] + delimitor; }
+			tmp = tmp.substring(0, tmp.length-1);
+			return tmp;
+		}
+			
+		function setUpLocalStorage()
+		{
+			var storeKeyNames = ["views","googleViews","indexValue","prevFileName","lastFileData"];
+			var i = 0;
+			for (i; i < storeKeyNames.length; i++) {
+				if (!getStorage(storeKeyNames[i])) {
+					setStorage(storeKeyNames[i], "null");
+				}
+			}
+		}
+
+		function removeSpace(str){ if (str.charAt(0) == " ") { str = str.substring(1, str.length); } return str; }
+		function numberRemoveCommas(num){ return (num.toString().replace(/,/g, '')).valueOf();}
+		function getStorage(memKey){ if (localStore) { return window.localStorage.getItem(memKey); }}
+		function setStorage(memKey, val){ if (localStore) { window.localStorage.setItem(memKey, val); }}
+
+		function doFormat()
+		{
+			var ratio = screen.height/screen.width;
+			//console.log(ratio);
+			rows = d.getElementsByClassName("row");
+			para = d.getElementsByClassName("thinP");
+			currFile = d.getElementsByClassName("files");
+			//console.log("????"+currFile.length);
+			
+			if (ratio < 1.51) {
+				d.getElementById("topData").style.fontSize = 24 + "px";
+				d.getElementById("table").style.fontSize = 24 + "px";
+				d.getElementById("load").style.fontSize = 30 + "px";
+				d.getElementById("tableSource").style.fontSize = 24 + "px";
+				d.getElementById("tableTitle").style.fontSize = 32 + "px";
+				d.getElementById("topData").style.marginTop = 48 + "px";
+				d.getElementById("tools").style.top = "30px";
+				if (rows.length > 0) {
+					for (i=0; i<rows.length; i++) {
+						rows[i].style.height = 46.3 + "px";
+						rows[i].style.lineHeight = "75%";
+					}
+				}
+				if (para.length > 0) {
+					for (i=0; i<para.length; i++) {
+						para[i].style.fontSize = 28 + "px";
+						para[i].style.marginTop = -7 + "px";
+					}
+				}
+			}
+			if (ratio <= 1) {
+				var tmp = d.getElementById("tools");
+				tmp.style.right = "300px";
+				tmp.style.top = "60px";
+				tmp.style.backgroundSize = "75%";
+				d.getElementById("load").style.paddingTop = "2%";
+				d.getElementById("load").style.paddingBottom = "1.5%";
+			}
+		}
+		
+		function setGradient()
+		{
+			var tmp = 0;
+			var tmp2 = 0;
+			var scr = screen.width;
+			for (i=0; i<arrMasterBlock.length; i++) {
+				if (arrMasterBlock[i] > tmp) {
+					tmp = arrMasterBlock[i];
+				}
+			}
+			
+			rows = d.getElementsByClassName("row")
+			wid = screen.width * .8;
+			widFactor = 100 / tmp;
+			
+			for (i=8; i<rows.length; i++) {
+				rowVal = rows[i].childNodes[1].childNodes[0].childNodes[0].innerHTML;
+				rowPercent = (rowVal * widFactor);
+				//rows[i].style.backgroundImage = "linear-gradient(90deg, rgba(42,148,205,.06) 0%, rgba(42,148,205,.12) "+rowPercent*.66+"%, rgba(42,148,205,.18) "+(rowPercent)+"%, rgba(252,252,252,.5) "+(rowPercent)+"%)";
+// 				rows[i].style.backgroundImage = "linear-gradient(90deg, rgba(135,240,255,.5) 0%, rgba(135,240,255,.5) "+(rowPercent)+"%, rgba(252,252,252,.5) "+(rowPercent)+"%)";
+// 				rows[i].style.backgroundImage = "linear-gradient(90deg, rgba(255,240,0,.5) 0%, rgba(255,240,0,.5) "+(rowPercent)+"%, rgba(252,252,252,.1) "+(rowPercent)+"%)";
+
+// 				rows[i].style.backgroundImage = "linear-gradient(90deg, rgba(0,100,120,1) 0%, rgba(0,100,120,1) "+(rowPercent)+"%, rgba(0,0,0,.85) "+(rowPercent)+"%, rgba(0,0,0,.85) 100%)";
+				rows[i].style.backgroundImage = "linear-gradient(90deg, rgba(230,100,0, 1) 0%, rgba(230,100,0, 1) "+(rowPercent)+"%, rgba(0,0,0,.60) "+(rowPercent)+"%, rgba(0,0,0,.60) 100%)";
+			}
+			rows[33].style.backgroundImage = "linear-gradient(90deg, rgba(230,100,0, 1) 0%, rgba(230,100,0, 1) "+(rowPercent)+"%, rgba(0,0,0,.60) "+(rowPercent)+"%, rgba(0,0,0,.60) 100%)";
+		}
+		
+		function allStorage() {
+			var archive = [], keys = Object.keys(localStorage);
+			var i = 0;
+			var key;
+			//localStorage.removeItem(keys[7]);
+			for (i; key = keys[i]; i++) {
+				archive.push( key + '=' + localStorage.getItem(key));
+			}
+			alert(archive);
+		}
+	}
+	
+</script>
+
+<style type="text/css">
+	
+	* {
+		font-family: sans-serif;
+		font-weight: normal;
+	}
+	
+	body { 
+		padding: 3%; 
+		/* background-color: #303741; */
+		background-color: #eee;
+		color: #000;
+		max-width: 900px;
+		font-size: 42px;
+	}
+	
+	h1 { font-size: 60px; }
+	
+	p { 
+		padding: 8px;
+		padding-top: 4px;
+	}
+	
+	.boldTitle {
+		font-size: 68px; 
+		font-weight: bold;
+		color: #2D84B2;
+		padding-left: 40px;
+	}
+	
+	.controlButton {
+		width: 90%;
+		height: 50%;
+		color: #eef; 
+		font-size: 50px; 
+		text-align: center;
+		line-height: 80%;
+		padding-top: 3%; 
+		background-color: #2D84B2;
+		border-radius: 18px;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+		margin: 0% auto 24px auto;
+	}
+	
+	.controlButton:active { background-color: #0df; }
+
+	.controlRow {
+		width: auto;
+		height: 9%;
+		margin: 0px 0% -2% 0%;
+	}
+	
+	#topData, #table { 
+		height: auto;
+		/* background-color: #fff; */
+		border-radius: 18px;
+		margin-bottom: 8px;
+		padding-top: 2%;
+		padding-bottom: 8px;
+		clear: both;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+		
+	#fileChoice { visibility: hidden; }
+	
+	.rowLeft { 
+		width: 34.5%; 
+		float: left;
+		padding-left: 0%;
+		color: #000;
+	}
+	
+	.rowRight { 
+		width: 64%; 
+		float: right;
+		clear: right;
+		color: #000;
+		text-align: right;
+		padding-right: 8px;
+	}
+	
+	.rowRight, .rowLeft { 
+		height: auto;
+		padding-bottom: 12px;
+		overflow-x: visible;
+		white-space: nowrap;
+		line-height: 130%; 
+		margin-top: 1%;
+	}
+	
+	#tableSource {
+		line-height: 120%; 
+		margin-top: 20px;
+		margin-bottom: 14px;
+		margin-left: 4%;
+	}
+	
+	.tableTitle {
+		color: #000;
+		margin-top: 24px;	
+		margin-bottom: 14px;	
+		font-size: 50px;
+		padding-left: 4%;
+		float: left;
+		clear: left;
+	}
+	
+	#getFileButton {
+		left: 0px;
+		top: -100px;
+		height: 5px;
+		display: none;
+	}
+	
+	#table, #bottomData { 
+		display: none; 
+		border-top-right-radius: 18px;
+		border-top-left-radius: 18px;
+		border-bottom-right-radius: 18px;
+		border-bottom-left-radius: 18px;
+		height: auto;
+		/* background-color: #eee; */
+	}
+	
+	#table {
+		display: block; 
+		height: auto;
+		padding-bottom: 12px;
+		/* background-color: #eee; */
+	}
+	
+	#bottomData { 
+		height: auto;
+		margin-top: 0px;	
+	}
+	
+	#title: {
+		width: 80%;
+	}
+	
+	#tools {
+background:url('data:image/png;base64,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');
+		background-repeat: no-repeat;
+		background-position: 50% 50%; 
+		background-color: none;
+		background-size: 105%;
+		float: right;
+		clear: right;
+		width: 12%;
+		height: 6.2%;
+		top: 1%;
+		right: 10px;
+		position: absolute;
+		display: block;
+	}
+
+	.intro { 
+		padding: 0% 10% 3% 10%; 
+		color: #444;
+		text-align: center;
+		font-size: 35px;
+	}
+	
+	.row {
+		border-bottom: 1px #999 solid;
+		height: 60px;
+		width: auto;
+		padding-top: 2px;
+		margin: 0px 4% 0 4%;
+		/* line-height: 75%; */
+	}
+
+	.row:active {
+		background-color: rgba(255,255,0, 1);	
+	}
+
+	.thinP {
+		line-height: 100%;
+		margin-bottom: -4px;
+		margin-top: -9px;
+	}
+	
+	.files { font-size: 32px !important; line-height: 125%; }
+	
+	#compare {
+		width: 220px;
+		float: right;
+		background-color: #2D84B2;
+		margin-top: 12px;
+		margin-right: 40px;
+		padding: 12px;
+		color: #FFF;
+		text-align: center;
+		border-radius: 18px;
+	}
+
+	#compare:active {
+		background-color: #E55F00;
+	}
+	
+	span { color: #000;}
+	
+	.bold { font-weight: bold; }
+	.colorGreen { color: #080; background-color: #FFF; border-radius: 6px;}
+	.colorRed { color: #D00; }
+	.colorWhite { color: #fff; }
+	
+	div { /* border: 1px #f00 solid; */ }
+	
+</style>
+
+</head><!--  ================== End of head -->
+
+<body>
+	<div id="title"><h1 class="boldTitle">Google Local Guide<br />Photo Views</h1>
+		<div id="tools"></div>
+	</div>
+
+	<div id="displayControl" class="controlRow">
+		<div class="controlButton" id="load">Load File</div>
+	</div>
+
+	<div id="getFileButton">
+		<input type="file" id="fileChoice" name="files">
+	</div>
+
+	<div id="topData">
+		<p class="intro" id="intro">Tap on "Load File" and load the saved photos view data.<br /> <br />Last file:<br /></p>
+		<div id="tableSource"> </div>
+	</div>
+	
+	<div id="bottomData">
+		<div><div class="tableTitle" id="tableTitle">Photo # of Views Detail:</div><div id="compare"> View Prev </div></div>
+		<div id="table">
+			<!-- <div id="colLeft" class="rowLeft"></div><div id="colRight" class="rowRight"></div> -->
+		</div>
+	</div>
+	<p>&nbsp;</p>
+</body>
+</html>
