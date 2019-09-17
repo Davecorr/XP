@@ -1,0 +1,119 @@
+<html>
+<head>
+<meta HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+
+<title>Local Guide Photos Totals</title>
+
+<script>
+	d = document;
+	d.addEventListener("DOMContentLoaded", ready);
+	
+	function ready()
+	{
+        doFormat();
+
+		function doFormat()
+		{		
+			var ratio = screen.height/screen.width;
+			var page = d.getElementById("page");
+
+			if (ratio < 1.50) {
+				page.style.width = 92 + "%";
+			}
+			
+			if (ratio <= 1) {
+				page.style.width = 50 + "%";
+			}
+		}
+	}
+	
+</script>
+
+<style>
+	* {
+		font-family: sans-serif;
+		font-weight: normal;
+		font-size: 18px;
+	}
+	
+	body {
+		padding: 40px;
+		margin: 20px 0 0 20px;
+		color: #000;
+		background-color: rgb(255, 255, 255);
+	}
+	
+	p {
+		margin: 20px 0 0 0;
+	}
+	
+	ol {
+		margin: 0 0 34px 0;	
+	}
+	
+	li {
+		margin-bottom: 12px;
+	}
+	
+	h2 {
+		font-weight: bold;
+		font-size: 34px;
+	}
+	
+	h3 {
+		font-weight: normal;
+		font-size: 28px;	
+	}
+	
+	#page {
+		width: 94%;
+	}
+	
+</style>
+
+</head>
+
+<body>
+
+<div id="page"><h2>Google Local Guide Photos Totals</h2>
+
+	<h3>Calculate photo contributions.</h3>
+
+	<ol>
+
+	<li>Using a browser app, go to <a href="http://maps.Google.com">http://maps.Google.com</a></li>
+
+	<li>From the top-left-side menu, choose "My Contributions".</li>
+
+	<li>Click on the Photos tab</li>
+
+	<li>Scroll down to the very END of the listing - IMPORTANT. 
+	   Keep scrolling until the last photo is shown and won't 
+	   scroll any more.</li>
+
+	<li>Press and hold on a single word in a business title 
+	   (NOT a photo) and choose "Select all" from the pop up. 
+	   The entire list of the photos should be highlighted.</li>
+
+	<li>Copy the text (or share the text if it's an option) to a 
+	   TEXT ONLY file editor. It is important that you save the text 
+	   in a text only format and MUST be named with a ".txt" extension. 
+	   Add the date in the file name to keep the file name unique.</li>
+
+	<li>From your browser, open up the web address:<br />
+	   <a href="https://davecorr.github.io/XP/Calculate-Map-Views_b07W.html">
+	   https://davecorr.github.io/XP/Calculate-Map-Views_b07W.html</a></li>
+	
+	<li>Click on the "Load File" button and choose the .txt file you created.</li>
+
+	<li>You should see your data displayed. It will contain "NaN" the 
+	   first time a file is loaded.</li>
+   
+	</ol>
+
+	<p>If you have problems or comments, send me an email. Include 
+	screen shots if necessary.</p>
+	<p>Not affiliated with Google, Inc.</p>
+
+</div>
+</body>
